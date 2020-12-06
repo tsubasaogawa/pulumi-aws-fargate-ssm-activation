@@ -66,7 +66,41 @@ group = aws.ec2.SecurityGroup(f'{project_name}-sg',
 	}
 )
 
-role = aws.iam.Role(f'{project_name}-task-execution-role',
+# SSM Activation
+
+activation_role = aws.iam.Role(f'{project_name}-activation-role',
+	assume_role_policy=json.dumps({
+		'Version': '2012-10-17',
+		'Statement': {
+			'Effect': 'Allow',
+			'Principal': {
+				'Service': 'ssm.amazonaws.com'
+			},
+			'Action': 'sts:AssumeRole',
+		}
+	}),
+	tags={
+		'Name': f'{project_name}-activation-role',
+	}
+)
+
+activation_rpa = aws.iam.RolePolicyAttachment(f'{project_name}-activation-role-policy',
+    role=activation_role.name,
+    policy_arn="arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+)
+
+activation = aws.ssm.Activation(f'{project_name}-activation',
+    description=f'Activation for {project_name}',
+    iam_role=activation_role.id,
+    registration_limit=100,
+    opts=ResourceOptions(
+		depends_on=[activation_rpa]
+	)
+)
+
+# ECS
+
+task_execution_role = aws.iam.Role(f'{project_name}-task-execution-role',
 	assume_role_policy=json.dumps({
 		'Version': '2008-10-17',
 		'Statement': [{
@@ -83,8 +117,8 @@ role = aws.iam.Role(f'{project_name}-task-execution-role',
 	}
 )
 
-rpa = aws.iam.RolePolicyAttachment(f'{project_name}-task-execution-role-policy',
-	role=role.name,
+task_execution_rpa = aws.iam.RolePolicyAttachment(f'{project_name}-task-execution-role-policy',
+	role=task_execution_role.name,
 	policy_arn='arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
 )
 
@@ -94,7 +128,7 @@ task_definition = aws.ecs.TaskDefinition(f'{project_name}-task-definition',
     memory='512',
     network_mode='awsvpc',
     requires_compatibilities=['FARGATE'],
-    execution_role_arn=role.arn,
+    execution_role_arn=task_execution_role.arn,
     container_definitions=json.dumps([{
 		'name': project_name,
 		'image': image,
