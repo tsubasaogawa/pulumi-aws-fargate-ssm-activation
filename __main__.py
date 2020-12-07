@@ -6,11 +6,7 @@ import json
 project_name = 'fargate-ssm-activation'
 platform_version = '1.4.0'
 cidr_base = '10.1.0.0'
-image = 'busybox'
-commands = [
-	'sleep',
-	'3600',
-]
+image = project_name
 
 vpc = aws.ec2.Vpc(f'{project_name}-vpc',
 	cidr_block=f'{cidr_base}/24',
@@ -98,6 +94,18 @@ activation = aws.ssm.Activation(f'{project_name}-activation',
 	)
 )
 
+# ECR
+
+repository = aws.ecr.Repository(f'{project_name}-repository',
+	name=f'{project_name}-repository',
+	image_scanning_configuration=aws.ecr.RepositoryImageScanningConfigurationArgs(
+        scan_on_push=True,
+    ),
+	tags={
+		'Name': f'{project_name}-repository',
+	}
+)
+
 # ECS
 
 task_execution_role = aws.iam.Role(f'{project_name}-task-execution-role',
@@ -129,11 +137,10 @@ task_definition = aws.ecs.TaskDefinition(f'{project_name}-task-definition',
     network_mode='awsvpc',
     requires_compatibilities=['FARGATE'],
     execution_role_arn=task_execution_role.arn,
-    container_definitions=json.dumps([{
+    container_definitions=repository.repository_url.apply(lambda url: json.dumps([{
 		'name': project_name,
-		'image': image,
-		'command': commands,
-	}])
+		'image': url + ':latest'
+	}])),
 )
 
 cluster = aws.ecs.Cluster(f'{project_name}-cluster')
@@ -150,3 +157,5 @@ service = aws.ecs.Service(f'{project_name}-service',
 	),
 	platform_version=platform_version,
 )
+
+export('ecr_repository', repository.repository_url)
