@@ -12,4 +12,6 @@ COPY --from=downloader /usr/local/src/amazon-ssm-agent.deb /usr/local/src/
 RUN dpkg -i /usr/local/src/amazon-ssm-agent.deb \
     && rm /usr/local/src/amazon-ssm-agent.deb
 
-ENTRYPOINT ["/usr/bin/amazon-ssm-agent"]
+COPY entrypoint.sh /usr/local/bin/
+
+CMD ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
