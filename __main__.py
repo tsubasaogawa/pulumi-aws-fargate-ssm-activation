@@ -1,4 +1,4 @@
-from pulumi import export, ResourceOptions
+from pulumi import export, Output, ResourceOptions
 import pulumi_aws as aws
 import json
 
@@ -6,6 +6,7 @@ import json
 project_name = 'fargate-ssm-activation'
 platform_version = '1.4.0'
 cidr_base = '10.1.0.0'
+region = 'ap-northeast-1'
 image = project_name
 
 vpc = aws.ec2.Vpc(f'{project_name}-vpc',
@@ -137,9 +138,27 @@ task_definition = aws.ecs.TaskDefinition(f'{project_name}-task-definition',
     network_mode='awsvpc',
     requires_compatibilities=['FARGATE'],
     execution_role_arn=task_execution_role.arn,
-    container_definitions=repository.repository_url.apply(lambda url: json.dumps([{
+    container_definitions=Output.all(
+		repository.repository_url,
+		activation.id,
+		activation.activation_code
+	).apply(lambda args: json.dumps([{
 		'name': project_name,
-		'image': url + ':latest'
+		'image': args[0] + ':latest',
+		'environment': [
+			{
+				'name': 'ACTIVATION_ID',
+				'value': args[1],
+			},
+			{
+				'name': 'ACTIVATION_CODE',
+				'value': args[2],
+			},
+			{
+				'name': 'REGION',
+				'value': region,
+			}
+		]
 	}])),
 )
 
