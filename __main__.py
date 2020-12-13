@@ -1,5 +1,6 @@
 from pulumi import export, Output, ResourceOptions
 import pulumi_aws as aws
+import datetime
 import json
 
 
@@ -8,6 +9,8 @@ platform_version = '1.4.0'
 cidr_base = '10.1.0.0'
 region = 'ap-northeast-1'
 image = project_name
+expire_timedelta = datetime.timedelta(days=7)
+tz = datetime.timezone(datetime.timedelta(hours=+9), 'JST')
 
 vpc = aws.ec2.Vpc(f'{project_name}-vpc',
 	cidr_block=f'{cidr_base}/24',
@@ -90,6 +93,7 @@ activation = aws.ssm.Activation(f'{project_name}-activation',
     description=f'Activation for {project_name}',
     iam_role=activation_role.id,
     registration_limit=100,
+	expiration_date=(datetime.datetime.now(tz) + expire_timedelta).strftime('%Y-%m-%dT%H:%M:%SZ'),
     opts=ResourceOptions(
 		depends_on=[activation_rpa]
 	)
