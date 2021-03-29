@@ -111,6 +111,13 @@ repository = aws.ecr.Repository(f'{project_name}-repository',
 	}
 )
 
+# CloudWatch Logs
+log_group = aws.cloudwatch.LogGroup(f'/{project_name}',
+    tags={
+        'Name': f'/{project_name}',
+	}
+)
+
 # ECS
 
 task_execution_role = aws.iam.Role(f'{project_name}-task-execution-role',
@@ -145,7 +152,8 @@ task_definition = aws.ecs.TaskDefinition(f'{project_name}-task-definition',
     container_definitions=Output.all(
 		repository.repository_url,
 		activation.id,
-		activation.activation_code
+		activation.activation_code,
+		log_group.id
 	).apply(lambda args: json.dumps([{
 		'name': project_name,
 		'image': args[0] + ':latest',
@@ -162,7 +170,15 @@ task_definition = aws.ecs.TaskDefinition(f'{project_name}-task-definition',
 				'name': 'REGION',
 				'value': region,
 			}
-		]
+		],
+		'logConfiguration': {
+			'logDriver': 'awslogs',
+			'options': {
+				'awslogs-group': args[3],
+				'awslogs-region': region,
+				'awslogs-stream-prefix': 'fargate'
+			}
+		}
 	}])),
 )
 
