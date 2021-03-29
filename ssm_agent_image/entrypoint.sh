@@ -16,3 +16,7 @@ fi
 /usr/bin/amazon-ssm-agent -register -code $ACTIVATION_CODE -id $ACTIVATION_ID -region $REGION
 
 /usr/bin/amazon-ssm-agent
+
+while :; do
+  sleep 1
+done
