@@ -120,6 +120,28 @@ log_group = aws.cloudwatch.LogGroup(f'/{project_name}',
 
 # ECS
 
+task_role = aws.iam.Role(f'{project_name}-task-role',
+	assume_role_policy=json.dumps({
+		'Version': '2008-10-17',
+		'Statement': [{
+			'Sid': '',
+			'Effect': 'Allow',
+			'Principal': {
+				'Service': 'ecs-tasks.amazonaws.com'
+			},
+			'Action': 'sts:AssumeRole',
+		}]
+	}),
+	tags={
+		'Name': f'{project_name}-task-role',
+	}
+)
+
+task_rpa = aws.iam.RolePolicyAttachment(f'{project_name}-task-role-policy',
+	role=task_role.name,
+	policy_arn='arn:aws:iam::aws:policy/CloudWatchLogsFullAccess',
+)
+
 task_execution_role = aws.iam.Role(f'{project_name}-task-execution-role',
 	assume_role_policy=json.dumps({
 		'Version': '2008-10-17',
@@ -148,6 +170,7 @@ task_definition = aws.ecs.TaskDefinition(f'{project_name}-task-definition',
     memory='512',
     network_mode='awsvpc',
     requires_compatibilities=['FARGATE'],
+	task_role_arn=task_role.arn,
     execution_role_arn=task_execution_role.arn,
     container_definitions=Output.all(
 		repository.repository_url,
