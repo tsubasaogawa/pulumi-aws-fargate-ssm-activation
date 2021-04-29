@@ -12,6 +12,7 @@ FROM ubuntu:20.04 AS main
 
 COPY --from=downloader /usr/local/src/amazon-ssm-agent.deb /usr/local/src/
 COPY --from=downloader /usr/local/bin/jq /usr/local/bin/
+COPY --from=downloader /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 RUN dpkg -i /usr/local/src/amazon-ssm-agent.deb \
     && rm /usr/local/src/amazon-ssm-agent.deb \
     && cp /etc/amazon/ssm/seelog.xml.template /etc/amazon/ssm/seelog.xml \
