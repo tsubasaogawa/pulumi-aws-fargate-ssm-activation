@@ -12,6 +12,8 @@ image = project_name
 expire_timedelta = datetime.timedelta(days=7)
 tz = datetime.timezone(datetime.timedelta(hours=+9), 'JST')
 
+# Network
+
 vpc = aws.ec2.Vpc(f'{project_name}-vpc',
 	cidr_block=f'{cidr_base}/24',
 	tags={
@@ -112,6 +114,7 @@ repository = aws.ecr.Repository(f'{project_name}-repository',
 )
 
 # CloudWatch Logs
+
 log_group = aws.cloudwatch.LogGroup(f'/{project_name}',
     tags={
         'Name': f'/{project_name}',
@@ -219,5 +222,7 @@ service = aws.ecs.Service(f'{project_name}-service',
 	),
 	platform_version=platform_version,
 )
+
+# Output
 
 export('ecr_repository', repository.repository_url)
